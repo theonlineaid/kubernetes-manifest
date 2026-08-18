@@ -1,0 +1,14 @@
+# DO NOT commit this file with real values to git.
+# Preferred: create it imperatively instead (see README), then skip applying this file.
+#
+# If you do use this file, values under `stringData` are plain text — k8s encodes them for you.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-secret
+  namespace: app
+type: Opaque
+stringData:
+  POSTGRES_USER: "appuser"
+  POSTGRES_PASSWORD: "apppassword"
+  PGADMIN_DEFAULT_PASSWORD: "admin123"
