@@ -1,0 +1,22 @@
+# App-of-apps: apply this ONE file and ArgoCD creates/manages backend-app
+# and frontend-app itself, by watching this same argocd/ folder.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/theonlineaid/kubernetes-manifest.git
+    targetRevision: main
+    path: argocd
+    directory:
+      exclude: "root-app.yml"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

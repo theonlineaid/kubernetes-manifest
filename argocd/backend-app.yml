@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backend-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/theonlineaid/backend-k8s.git
+    targetRevision: main
+    path: backend
+    directory:
+      # secrate.yml only holds placeholder values — the real secret is created
+      # imperatively (see infra/READ.md). Never let ArgoCD sync/prune it, or
+      # selfHeal will overwrite the real cluster secret with the placeholders.
+      exclude: "secrate.yml"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
