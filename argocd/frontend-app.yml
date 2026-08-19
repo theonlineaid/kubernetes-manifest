@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/theonlineaid/frontend-k8s.git
     targetRevision: main
-    path: frontend
+    path: infra/frontend
   destination:
     server: https://kubernetes.default.svc
     namespace: app
