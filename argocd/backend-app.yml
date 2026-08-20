@@ -6,9 +6,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/theonlineaid/backend-k8s.git
+    repoURL: https://github.com/theonlineaid/kubernetes-manifest.git
     targetRevision: main
-    path: infra/backend
+    path: backend
     directory:
       # secrate.yml only holds placeholder values — the real secret is created
       # imperatively (see infra/READ.md). Never let ArgoCD sync/prune it, or

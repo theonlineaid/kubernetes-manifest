@@ -6,9 +6,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/theonlineaid/frontend-k8s.git
+    repoURL: https://github.com/theonlineaid/kubernetes-manifest.git
     targetRevision: main
-    path: infra/frontend
+    path: frontend
   destination:
     server: https://kubernetes.default.svc
     namespace: app
