@@ -1,0 +1,32 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: envoy-hostport-config
+  namespace: envoy-gateway-system
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        # Traffic reaches Envoy via hostPort below, not through this Service,
+        # so it doesn't need to be NodePort/LoadBalancer.
+        type: ClusterIP
+      envoyDeployment:
+        # No spare LoadBalancer IP (MetalLB) and no LoadBalancer available here,
+        # so bind the proxy directly to the node's own port 80 via hostPort.
+        # This is a community pattern, not an officially documented EnvoyProxy
+        # field — verify with `kubectl -n envoy-gateway-system get pod -o yaml`
+        # that the hostPort actually landed on the envoy container after apply.
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              template:
+                spec:
+                  containers:
+                    - name: envoy
+                      ports:
+                        - name: http
+                          containerPort: 80
+                          hostPort: 80
+                          protocol: TCP

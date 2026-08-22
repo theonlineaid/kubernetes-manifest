@@ -1,0 +1,73 @@
+# Helm values for the kube-prometheus-stack chart (Prometheus Operator +
+# Prometheus + Alertmanager + Grafana + node-exporter + kube-state-metrics).
+# Wired in via ../argocd/monitoring-app.yml (multi-source Application: chart
+# from the prometheus-community Helm repo, values from this file).
+#
+# Tuned down for the single-node bare-metal box this repo targets — raise
+# resources/retention/storage below if the node has room to spare.
+
+# --- Grafana: only UI exposed outside the cluster, via NodePort 30300 ---
+# (same pattern as pgAdmin — see infra/backend/pgadmin.yml: internal ops
+# tool, no public Gateway/DNS entry)
+grafana:
+  service:
+    type: NodePort
+    nodePort: 30300
+  persistence:
+    enabled: true
+    size: 2Gi
+  # Real admin credentials never go in git — create the `grafana-admin`
+  # Secret imperatively first (see infra/READ.md §12).
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+
+# --- Prometheus: kept internal (ClusterIP), reach it via port-forward ---
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
