@@ -3,8 +3,8 @@
 # Wired in via ../argocd/monitoring-app.yml (multi-source Application: chart
 # from the prometheus-community Helm repo, values from this file).
 #
-# Tuned down for the single-node bare-metal box this repo targets — raise
-# resources/retention/storage below if the node has room to spare.
+# Tuned down for a small bare-metal cluster (1 master + 1 worker VM) — raise
+# resources/retention/storage below if the nodes have room to spare.
 
 # --- Grafana: only UI exposed outside the cluster, via NodePort 30300 ---
 # (same pattern as pgAdmin — see infra/backend/pgadmin.yml: internal ops
@@ -57,6 +57,11 @@ alertmanager:
         memory: 128Mi
 
 prometheus-node-exporter:
+  # Must run on the master too (kubeadm taints it NoSchedule by default) or
+  # you lose host metrics for that node entirely — with only 2 nodes total
+  # that's half your fleet blind.
+  tolerations:
+    - operator: Exists
   resources:
     requests:
       cpu: 25m
