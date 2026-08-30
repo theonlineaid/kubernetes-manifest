@@ -5,12 +5,14 @@ set -e
 cd "$(dirname "$0")/.."
 
 NAMESPACE="monitoring"
-RELEASE="monitoring"
 SECRET_NAME="grafana-admin"
+ARGOCD_NAMESPACE="argocd"
+ARGOCD_APP_FILE="../argocd/monitoring-app.yml"
+ARGOCD_INSTALL_URL="https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"
 
 echo ""
 echo "======================================"
-echo "🚀 OMS Monitoring Deployment (Prometheus + Grafana)"
+echo "🚀 OMS Monitoring Deployment (Prometheus + Grafana via ArgoCD)"
 echo "======================================"
 
 # ------------------------------------------
@@ -71,31 +73,61 @@ else
 fi
 
 # ------------------------------------------
-# 4. Deploy kube-prometheus-stack via Helm
+# 4. Install ArgoCD control plane (skip if already present)
 # ------------------------------------------
 
 echo ""
-echo "📡 Adding prometheus-community Helm repo..."
+echo "🔎 Checking for ArgoCD..."
 
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts >/dev/null
-helm repo update prometheus-community >/dev/null
+if kubectl -n "$ARGOCD_NAMESPACE" get deployment argocd-server >/dev/null 2>&1; then
+  echo "   ArgoCD already installed, skipping."
+else
+  echo "   Not found — installing ArgoCD control plane..."
 
-echo ""
-echo "📈 Installing/upgrading kube-prometheus-stack..."
+  kubectl create namespace "$ARGOCD_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+  kubectl apply -n "$ARGOCD_NAMESPACE" -f "$ARGOCD_INSTALL_URL"
 
-helm upgrade --install "$RELEASE" prometheus-community/kube-prometheus-stack \
-  --namespace "$NAMESPACE" \
-  -f values.yaml \
-  --wait --timeout 10m
+  echo ""
+  echo "⏳ Waiting for argocd-server..."
+  kubectl -n "$ARGOCD_NAMESPACE" rollout status deployment/argocd-server --timeout=300s
+fi
 
 # ------------------------------------------
-# 5. Deployment Summary
+# 5. Apply the monitoring Application (ArgoCD renders the Helm chart itself,
+#    no local `helm` binary needed; syncPolicy.automated does the rest)
+# ------------------------------------------
+
+echo ""
+echo "📡 Applying ArgoCD Application (kube-prometheus-stack)..."
+
+kubectl apply -f "$ARGOCD_APP_FILE"
+
+echo ""
+echo "⏳ Waiting for ArgoCD to sync (first sync pulls the chart + CRDs, can take a few minutes)..."
+
+for _ in $(seq 1 60); do
+  SYNC="$(kubectl -n "$ARGOCD_NAMESPACE" get application monitoring -o jsonpath='{.status.sync.status}' 2>/dev/null)"
+  HEALTH="$(kubectl -n "$ARGOCD_NAMESPACE" get application monitoring -o jsonpath='{.status.health.status}' 2>/dev/null)"
+  if [ "$SYNC" = "Synced" ] && [ "$HEALTH" = "Healthy" ]; then
+    echo "   Synced=$SYNC Health=$HEALTH"
+    break
+  fi
+  echo "   Synced=${SYNC:-Unknown} Health=${HEALTH:-Unknown}, waiting..."
+  sleep 5
+done
+
+# ------------------------------------------
+# 6. Deployment Summary
 # ------------------------------------------
 
 echo ""
 echo "======================================"
 echo "✅ Monitoring deployment completed!"
 echo "======================================"
+
+echo ""
+echo "🔧 ArgoCD Application:"
+kubectl -n "$ARGOCD_NAMESPACE" get application monitoring
 
 echo ""
 echo "📦 Pods (expect node-exporter once per node, master included):"

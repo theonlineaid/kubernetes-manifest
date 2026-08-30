@@ -3,11 +3,16 @@
 cd "$(dirname "$0")/.."
 
 NAMESPACE="monitoring"
+ARGOCD_NAMESPACE="argocd"
 
 echo "======================================"
 echo "📊 Monitoring Status"
 echo "Namespace: $NAMESPACE"
 echo "======================================"
+
+echo ""
+echo "🔧 ArgoCD Application:"
+kubectl -n "$ARGOCD_NAMESPACE" get application monitoring 2>/dev/null || echo "   (not found — deployed without ArgoCD?)"
 
 echo ""
 echo "📦 Pods:"
