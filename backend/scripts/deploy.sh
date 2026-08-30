@@ -1,4 +1,3 @@
-```bash
 #!/bin/bash
 
 set -e
@@ -147,4 +146,3 @@ echo ""
 echo "======================================"
 echo "🎉 OMS Backend deployment finished"
 echo "======================================"
-```
